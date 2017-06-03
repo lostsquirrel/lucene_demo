@@ -1,2 +1,3 @@
-# solr_demo
+# lucene ralated demos
+lucene demos
 solr demo
