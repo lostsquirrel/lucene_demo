@@ -2,10 +2,7 @@ package demo.lucene.hello;
 
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
-import org.apache.lucene.document.Document;
-import org.apache.lucene.document.Field;
-import org.apache.lucene.document.IntPoint;
-import org.apache.lucene.document.StringField;
+import org.apache.lucene.document.*;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexWriter;
@@ -47,23 +44,37 @@ public class Hello {
 
         IndexReader reader = DirectoryReader.open(dir);
         IndexSearcher searcher = new IndexSearcher(reader);
-        search(searcher, analyzer, "author", "G*");
+        search(searcher, analyzer, "author", "\"unknown\"");
+        search(searcher, analyzer, "phrase", "\"简单\"");
+
+        intPointSearch(searcher, "index", 5);
+        intPointSearch(searcher, "fav", 5);
         reader.close();
     }
 
+    private static void intPointSearch(IndexSearcher searcher, String field, int key) throws IOException {
+        Query query = IntPoint.newExactQuery(field, key);
+        TopDocs results = searcher.search(query, 10);
+        showResults(searcher, field, results);
+    }
     private static void search(IndexSearcher searcher, Analyzer analyzer, String field, String key) throws ParseException, IOException {
         QueryParser parser = new QueryParser(field, analyzer);
-        Query query = parser.parse(String.format("%s", key));
+        Query query = parser.parse(key);
         System.out.println(query.toString(field));
         TopDocs results = searcher.search(query, 10);
+        showResults(searcher, field, results);
+
+    }
+
+    private static void showResults(IndexSearcher searcher, String field, TopDocs results) throws IOException {
         System.out.println(results.totalHits);
         for (ScoreDoc doc : results.scoreDocs) {
             Document d = searcher.doc(doc.doc);
-            String msg = String.format("%f\t%s", doc.score, d.get(field));
+            String msg = String.format("%f\t%s", doc.score, d);
             System.out.println(msg);
         }
-
     }
+
     private static void indexDocs(IndexWriter writer, String[] sources) {
         for (int i = 0; i < sources.length; i++) {
             String source = sources[i];
@@ -87,10 +98,10 @@ public class Hello {
 
         // 再创建一个字段
         doc.add(new IntPoint("fav", random()));
-        doc.add(new StringField("phrase", item[0], Field.Store.YES));
+        doc.add(new TextField("phrase", item[0].trim(), Field.Store.YES));
         String author = "unknown";
         if (item.length > 1) {
-            author = item[1];
+            author = item[1].trim();
         }
         doc.add(new StringField("author", author, Field.Store.YES));
         System.out.println(doc.toString());
